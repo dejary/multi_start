@@ -1,0 +1,32 @@
+{
+  "window": {
+    "title": "程序启动中心",
+    "width": 800,
+    "height": 600
+  },
+  "items": [
+    {
+      "name": "记事本",
+      "type": "exe",
+      "path": "C:/Windows/System32/notepad.exe",
+      "description": "启动 Windows 记事本",
+      "arguments": [],
+      "visible": true
+    },
+    {
+      "name": "演示脚本",
+      "type": "bat",
+      "path": "scripts/hello.bat",
+      "description": "执行示例 BAT 文件",
+      "arguments": ["来自 MultiStart"],
+      "visible": true
+    },
+    {
+      "name": "数据目录",
+      "type": "folder",
+      "path": "data",
+      "description": "在资源管理器中打开数据目录",
+      "visible": true
+    }
+  ]
+}

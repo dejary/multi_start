@@ -1,0 +1,10 @@
+/build*/
+/dist/
+/install/
+/.cache/
+/.vs/
+/.vscode/
+CMakeUserPresets.json
+*.user
+/CMakePresets.json
+/scripts

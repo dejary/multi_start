@@ -1,0 +1,73 @@
+# dux 项目配置
+name = "multi_start"
+version = "1.0.0"       # 删除或留空时读取 CMakeLists.txt 的 project(... VERSION ...)
+
+[build]
+system = "ninja"          # "ninja"（CLion 同款）| "vs"（Visual Studio 17 2022 生成器）
+arch = "x86"              # 缺省架构：x64 | x86，命令行 --arch 可覆盖
+location = "in-source"    # "in-source"     -> <项目>/build/<preset>_<arch>_<system>
+                          # "out-of-source" -> <全局 build_root>/<name>/<preset>_<arch>_<system>
+target = "MultiStart"          # 可执行文件名（不带 .exe），pack 时定位产物用
+# 修改完本节后可运行 dux presets，生成供命令行和 CLion 共用的 CMakePresets.json；
+# 文件包含 release/debug 两套 preset，使用这里配置的 arch/system/location。
+
+[build.env]
+# 构建阶段环境变量，同时用于 CMake configure 和 build；支持 ${VAR} 或 %VAR% 引用已有值
+# MY_SDK_ROOT = "D:/SDK"
+# PATH = "D:/SDK/bin;${PATH}"
+
+[build.qt]
+# 按架构引用全局 [qt] 表的别名（init 时自动填入各架构最新版本）；不使用 Qt 可删除本节
+x64 = "6.8.3-x64"
+x86 = "5.15.2-x86"
+
+[build.vcpkg]
+enabled = false
+# root = "D:/vcpkg"      # 可选；覆盖全局 vcpkg_root，相对路径基于项目根
+# triplet 缺省 x64-windows / x86-windows（随 arch），需要时按架构覆盖
+# x64 = "x64-windows-static"
+
+[install]
+# dux build --install 和默认的 dux release 执行 cmake --install 的目标目录；相对路径基于项目根，
+# 支持 multi_start/{version}/{arch}/{preset}/{system} 占位符
+dir = "install/{preset}_{arch}"
+
+[sync]
+# dux sync 和 dux release --sync 在构建后执行以下规则。
+# targets 是 CMake 目标文件名（可写多个，可省略 .exe）；复制目标文件时，会自动带上
+# 该目标文件同目录的全部 DLL。files 是相对构建目录的文件或 glob 通配规则。
+# 同步目录与 pack 的内容来源一致：优先 pack.source_dir，未配置时使用 install.dir。
+# into 是目标根目录内的可选子目录。所有匹配文件均以文件名复制到目标目录。
+#
+# [[sync.rules]]
+# targets = ["multi_start", "config-tool"]
+#
+# [[sync.rules]]
+# files = ["resources/*.json", "plugins/**/*.dll"]
+# into = "plugins"
+
+[pack]
+# 打包产出 Inno Setup 安装包，脚本由 dux 自动生成
+install_scope = "user"  # user: 当前用户 AppData（默认，无需管理员权限）；machine: Program Files
+# source_dir = "install/{preset}_{arch}/bin" # 相对项目根或绝对路径，支持与 install.dir 相同的占位符；
+                          # 省略时直接打包 [install].dir，
+                          # 也可用 dux pack -d <目录> 临时指定
+# iss = "my.iss"          # 需要完全自定义 Inno Setup 脚本时指定，一般不需要
+
+# 安装包快捷方式，可配置多个
+[[pack.shortcuts]]
+name = "multi_start"           # 快捷方式显示名
+file = "bin/MultiStart.exe"    # 指向的文件，相对安装目录
+desktop = true            # 提供桌面快捷方式选项；启用后安装时默认勾选
+# run_as_admin = true      # 该程序启动时请求管理员权限（所有启动入口均生效）
+
+[upload]
+# --- 升级服务器 API 模式（全局 [server] 配置 url 时）；版本号需为 x.y.z ---
+# app = "multi_start"                # 应用 ID，缺省用项目 name
+# platform = "windows-x64"      # 缺省 windows-<arch>
+# channel = "stable"            # 发布渠道
+changelog = "CHANGELOG.md"      # 必填；.md/.txt 按当前版本标题提取对应 Markdown 章节
+# min_required_version = "1.0.0"  # 低于该版本的客户端将被强制升级
+
+# --- SFTP 模式（全局 [server] 配置 host 时） ---
+remote_dir = "multi_start"     # 相对全局 remote_root 的远端子目录
