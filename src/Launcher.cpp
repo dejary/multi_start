@@ -20,14 +20,6 @@ QString effectiveWorkingDirectory(const AppItem &item)
 #ifdef Q_OS_WIN
 QString quoteForCommandPrompt(QString value)
 {
-    value.replace(QStringLiteral("^"), QStringLiteral("^^"));
-    value.replace(QStringLiteral("&"), QStringLiteral("^&"));
-    value.replace(QStringLiteral("|"), QStringLiteral("^|"));
-    value.replace(QStringLiteral("<"), QStringLiteral("^<"));
-    value.replace(QStringLiteral(">"), QStringLiteral("^>"));
-    value.replace(QStringLiteral("("), QStringLiteral("^("));
-    value.replace(QStringLiteral(")"), QStringLiteral("^)"));
-    value.replace(QStringLiteral("%"), QStringLiteral("%%"));
     value.replace(QStringLiteral("\""), QStringLiteral("\"\""));
     return QStringLiteral("\"") + value + QStringLiteral("\"");
 }
@@ -35,7 +27,8 @@ QString quoteForCommandPrompt(QString value)
 
 LaunchResult startDetached(const QString &program,
                            const QStringList &arguments,
-                           const QString &workingDirectory)
+                           const QString &workingDirectory,
+                           const QString &nativeArguments = QString())
 {
     if (!workingDirectory.isEmpty() && !QFileInfo(workingDirectory).isDir()) {
         return {false, QStringLiteral("工作目录不存在：%1").arg(workingDirectory)};
@@ -43,7 +36,16 @@ LaunchResult startDetached(const QString &program,
 
     QProcess process;
     process.setProgram(program);
+#ifdef Q_OS_WIN
+    if (!nativeArguments.isNull()) {
+        process.setNativeArguments(nativeArguments);
+    } else {
+        process.setArguments(arguments);
+    }
+#else
+    Q_UNUSED(nativeArguments)
     process.setArguments(arguments);
+#endif
     process.setWorkingDirectory(workingDirectory);
     qint64 processId = 0;
     if (!process.startDetached(&processId)) {
@@ -92,9 +94,8 @@ LaunchResult Launcher::launch(const AppItem &item)
     }
 
     const QString commandProcessor = qEnvironmentVariable("ComSpec", QStringLiteral("cmd.exe"));
-    return startDetached(commandProcessor,
-                         {QStringLiteral("/d"), QStringLiteral("/s"), QStringLiteral("/c"), command},
-                         workingDirectory);
+    const QString nativeArguments = QStringLiteral("/d /v:off /s /c ") + command;
+    return startDetached(commandProcessor, {}, workingDirectory, nativeArguments);
 #else
     return {false, QStringLiteral("BAT 文件只能在 Windows 系统上执行。")} ;
 #endif

@@ -37,6 +37,13 @@ void ConfigLoaderTest::loadsValidConfiguration()
 
     const QString path = writeConfig(directory, R"({
         "window": {"title": "测试中心", "width": 900, "height": 650},
+        "updates": {
+            "enabled": true,
+            "serverBaseUrl": "https://updates.example.com",
+            "appId": "test-app",
+            "platform": "windows-x86",
+            "channel": "beta"
+        },
         "items": [
             {"name": "工具", "type": "exe", "path": "bin/tool.exe", "arguments": ["--safe"]},
             {"name": "脚本", "type": "bat", "path": "run.bat"},
@@ -48,6 +55,10 @@ void ConfigLoaderTest::loadsValidConfiguration()
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.config.window.title, QStringLiteral("测试中心"));
     QCOMPARE(result.config.window.width, 900);
+    QVERIFY(result.config.updates.enabled);
+    QCOMPARE(result.config.updates.serverBaseUrl, QStringLiteral("https://updates.example.com"));
+    QCOMPARE(result.config.updates.appId, QStringLiteral("test-app"));
+    QCOMPARE(result.config.updates.channel, QStringLiteral("beta"));
     QCOMPARE(result.config.items.size(), 3);
     QCOMPARE(result.config.items.at(0).arguments, QStringList{QStringLiteral("--safe")});
     QCOMPARE(result.config.items.at(0).path,
@@ -87,4 +98,3 @@ void ConfigLoaderTest::rejectsMalformedJson()
 
 QTEST_MAIN(ConfigLoaderTest)
 #include "ConfigLoaderTest.moc"
-

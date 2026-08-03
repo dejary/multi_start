@@ -1,0 +1,3 @@
+[submodule "third_party/check_auto_update"]
+	path = third_party/check_auto_update
+	url = git@github.com:dejary/check_auto_update.git

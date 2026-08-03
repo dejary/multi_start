@@ -7,4 +7,5 @@
 CMakeUserPresets.json
 *.user
 /CMakePresets.json
-/scripts
+/scripts/*
+!/scripts/download-latest.ps1

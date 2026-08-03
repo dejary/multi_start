@@ -27,8 +27,18 @@ struct WindowSettings {
     int height = 600;
 };
 
-struct AppConfig {
-    WindowSettings window;
-    QVector<AppItem> items;
+struct UpdateSettings {
+    bool enabled = false;
+    QString serverBaseUrl;
+    QString appId = QStringLiteral("multi_start");
+    QString platform = QStringLiteral("windows-x86");
+    QString channel = QStringLiteral("stable");
+    int checkTimeoutMs = 2000;
+    int downloadTimeoutMs = 30000;
 };
 
+struct AppConfig {
+    WindowSettings window;
+    UpdateSettings updates;
+    QVector<AppItem> items;
+};

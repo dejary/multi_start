@@ -1,6 +1,8 @@
 <RCC>
     <qresource prefix="/assets">
         <file alias="app.png">../assets/app.png</file>
+        <file alias="default-exe.png">../assets/default-exe.png</file>
+        <file alias="default-folder.png">../assets/default-folder.png</file>
+        <file alias="default-bat.png">../assets/default-bat.png</file>
     </qresource>
 </RCC>
-

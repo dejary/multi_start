@@ -14,8 +14,44 @@ if(MSVC)
 endif()
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 set(QT_PACKAGE "Qt${QT_VERSION_MAJOR}")
+
+add_subdirectory(third_party/check_auto_update EXCLUDE_FROM_ALL)
+# CheckAutoUpdate currently advertises C++20 although its public API and implementation
+# use only C++17. Keep MultiStart's Qt 5.15.2/C++17 compatibility contract intact.
+set_property(TARGET CheckAutoUpdate PROPERTY COMPILE_FEATURES cxx_std_17)
+set_property(TARGET CheckAutoUpdate PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_17)
+set_property(TARGET CheckAutoUpdate PROPERTY CXX_STANDARD 17)
+set_property(TARGET CheckAutoUpdate PROPERTY CXX_STANDARD_REQUIRED ON)
+
+# Qt 5's QStringList has multiple assignment overloads, so the dependency's bare
+# initializer-list assignment is ambiguous with MSVC. Compile a generated compatibility
+# copy until the upstream source uses an explicit QStringList initializer.
+set(CHECK_AUTO_UPDATE_MANAGER_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/check_auto_update/src/UpdateManager.cpp")
+file(READ "${CHECK_AUTO_UPDATE_MANAGER_SOURCE}" CHECK_AUTO_UPDATE_MANAGER_CONTENT)
+string(REPLACE
+    "arguments = {QStringLiteral(\"/SILENT\")"
+    "arguments = QStringList{QStringLiteral(\"/SILENT\")"
+    CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT
+    "${CHECK_AUTO_UPDATE_MANAGER_CONTENT}"
+)
+if(CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT STREQUAL CHECK_AUTO_UPDATE_MANAGER_CONTENT)
+    message(FATAL_ERROR "CheckAutoUpdate Qt 5 compatibility patch no longer matches upstream")
+endif()
+set(CHECK_AUTO_UPDATE_COMPAT_DIR "${CMAKE_CURRENT_BINARY_DIR}/check_auto_update_compat")
+file(MAKE_DIRECTORY "${CHECK_AUTO_UPDATE_COMPAT_DIR}")
+set(CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE
+    "${CHECK_AUTO_UPDATE_COMPAT_DIR}/UpdateManager.cpp")
+file(WRITE "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE}"
+    "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT}")
+set_source_files_properties(
+    "${CHECK_AUTO_UPDATE_MANAGER_SOURCE}"
+    TARGET_DIRECTORY CheckAutoUpdate
+    PROPERTIES HEADER_FILE_ONLY TRUE
+)
+target_sources(CheckAutoUpdate PRIVATE "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE}")
 
 get_target_property(QT_QMAKE_EXECUTABLE ${QT_PACKAGE}::qmake IMPORTED_LOCATION)
 get_filename_component(QT_RUNTIME_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
@@ -37,8 +73,9 @@ if(WIN32)
 endif()
 
 add_executable(MultiStart WIN32 ${MULTISTART_SOURCES})
-target_link_libraries(MultiStart PRIVATE ${QT_PACKAGE}::Widgets)
+target_link_libraries(MultiStart PRIVATE ${QT_PACKAGE}::Widgets CheckAutoUpdate::CheckAutoUpdate)
 target_include_directories(MultiStart PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(MultiStart PRIVATE MULTISTART_VERSION="${PROJECT_VERSION}")
 
 set_target_properties(MultiStart PROPERTIES
     OUTPUT_NAME "MultiStart"
@@ -46,6 +83,9 @@ set_target_properties(MultiStart PROPERTIES
 )
 
 add_custom_command(TARGET MultiStart POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:CheckAutoUpdate>
+            $<TARGET_FILE_DIR:MultiStart>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${CMAKE_CURRENT_SOURCE_DIR}/apps.json
             $<TARGET_FILE_DIR:MultiStart>/apps.json
@@ -118,7 +158,7 @@ if(BUILD_TESTING)
     )
 endif()
 
-install(TARGETS MultiStart RUNTIME DESTINATION bin)
+install(TARGETS MultiStart CheckAutoUpdate RUNTIME DESTINATION bin)
 install(FILES apps.json DESTINATION bin)
 install(DIRECTORY scripts data DESTINATION bin)
 install(FILES README.md DESTINATION .)
@@ -138,6 +178,7 @@ if(WIN32)
                     --no-translations
                     --dir \"\${MULTISTART_INSTALL_BIN}\"
                     \"\${MULTISTART_INSTALL_BIN}/MultiStart.exe\"
+                    \"\${MULTISTART_INSTALL_BIN}/CheckAutoUpdate.dll\"
             RESULT_VARIABLE MULTISTART_DEPLOY_RESULT
         )
         if(NOT MULTISTART_DEPLOY_RESULT EQUAL 0)

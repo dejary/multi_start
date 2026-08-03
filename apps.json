@@ -4,6 +4,15 @@
     "width": 800,
     "height": 600
   },
+  "updates": {
+    "enabled": true,
+    "serverBaseUrl": "http://106.52.175.174:8080",
+    "appId": "multi_start",
+    "platform": "windows-x86",
+    "channel": "stable",
+    "checkTimeoutMs": 2000,
+    "downloadTimeoutMs": 30000
+  },
   "items": [
     {
       "name": "记事本",

@@ -83,6 +83,45 @@ ConfigResult ConfigLoader::load(const QString &configPath)
             window.value(QStringLiteral("height")).toInt(result.config.window.height), 360, 2160);
     }
 
+    const QJsonValue updatesValue = root.value(QStringLiteral("updates"));
+    if (!updatesValue.isUndefined() && !updatesValue.isObject()) {
+        result.warnings.append(QStringLiteral("配置字段“updates”必须是对象，已禁用自动升级。"));
+    } else if (updatesValue.isObject()) {
+        const QJsonObject updates = updatesValue.toObject();
+        result.config.updates.enabled = updates.value(QStringLiteral("enabled")).toBool(false);
+        result.config.updates.serverBaseUrl =
+            updates.value(QStringLiteral("serverBaseUrl")).toString().trimmed();
+
+        const QString appId = updates.value(QStringLiteral("appId")).toString().trimmed();
+        const QString platform = updates.value(QStringLiteral("platform")).toString().trimmed();
+        const QString channel = updates.value(QStringLiteral("channel")).toString().trimmed();
+        if (!appId.isEmpty()) {
+            result.config.updates.appId = appId;
+        }
+        if (!platform.isEmpty()) {
+            result.config.updates.platform = platform;
+        }
+        if (!channel.isEmpty()) {
+            result.config.updates.channel = channel;
+        }
+        result.config.updates.checkTimeoutMs = std::clamp(
+            updates.value(QStringLiteral("checkTimeoutMs"))
+                .toInt(result.config.updates.checkTimeoutMs),
+            500,
+            60000);
+        result.config.updates.downloadTimeoutMs = std::clamp(
+            updates.value(QStringLiteral("downloadTimeoutMs"))
+                .toInt(result.config.updates.downloadTimeoutMs),
+            1000,
+            3600000);
+
+        if (result.config.updates.enabled && result.config.updates.serverBaseUrl.isEmpty()) {
+            result.config.updates.enabled = false;
+            result.warnings.append(
+                QStringLiteral("updates.enabled 为 true，但 serverBaseUrl 为空，已禁用自动升级。"));
+        }
+    }
+
     const QJsonValue itemsValue = root.value(QStringLiteral("items"));
     if (!itemsValue.isArray()) {
         result.error = QStringLiteral("配置字段“items”必须是数组。");
