@@ -10,7 +10,6 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QSize>
-#include <QShowEvent>
 #include <QStatusBar>
 #include <QStyle>
 #include <QTimer>
@@ -30,18 +29,16 @@ MainWindow::MainWindow(QString configPath, QWidget *parent)
     loadConfiguration();
 }
 
-void MainWindow::showEvent(QShowEvent *event)
+void MainWindow::start()
 {
-    QMainWindow::showEvent(event);
-    if (m_autoLaunchScheduled || m_visibleItems.size() != 1) {
+    if (m_visibleItems.size() != 1) {
+        show();
         return;
     }
 
-    m_autoLaunchScheduled = true;
     QTimer::singleShot(0, this, [this]() {
-        if (m_listWidget->count() == 1) {
-            activateItem(m_listWidget->item(0));
-        }
+        const bool success = m_listWidget->count() == 1 && launchItem(m_listWidget->item(0));
+        emit singleItemLaunchFinished(success);
     });
 }
 
@@ -188,14 +185,19 @@ QIcon MainWindow::iconForItem(const AppItem &item) const
 
 void MainWindow::activateItem(QListWidgetItem *listItem)
 {
+    (void)launchItem(listItem);
+}
+
+bool MainWindow::launchItem(QListWidgetItem *listItem)
+{
     if (listItem == nullptr) {
-        return;
+        return false;
     }
 
     bool validIndex = false;
     const int index = listItem->data(ItemIndexRole).toInt(&validIndex);
     if (!validIndex || index < 0 || index >= m_visibleItems.size()) {
-        return;
+        return false;
     }
 
     const AppItem &item = m_visibleItems.at(index);
@@ -204,4 +206,5 @@ void MainWindow::activateItem(QListWidgetItem *listItem)
     if (!result.success) {
         QMessageBox::warning(this, QStringLiteral("无法启动“%1”").arg(item.name), result.message);
     }
+    return result.success;
 }

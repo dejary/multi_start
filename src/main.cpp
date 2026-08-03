@@ -50,6 +50,10 @@ int main(int argc, char *argv[])
                                    : defaultConfigPath();
 
     MainWindow window(configPath);
+    QObject::connect(&window,
+                     &MainWindow::singleItemLaunchFinished,
+                     &application,
+                     [&application](bool) { application.quit(); });
     const UpdateSettings &settings = window.updateSettings();
     if (settings.enabled) {
         auto *updateManager = new CheckAutoUpdate::UpdateManager(&application);
@@ -64,7 +68,7 @@ int main(int argc, char *argv[])
                          &window,
                          [&window](bool proceedToApplication) {
                              if (proceedToApplication) {
-                                 window.show();
+                                 window.start();
                              }
                          });
 
@@ -81,7 +85,7 @@ int main(int argc, char *argv[])
         updateConfig.downloadTimeoutMs = settings.downloadTimeoutMs;
         updateManager->startCheck(updateConfig);
     } else {
-        window.show();
+        window.start();
     }
     return application.exec();
 }

@@ -10,6 +10,7 @@
 #include <QListWidget>
 #include <QPixmap>
 #include <QPushButton>
+#include <QSignalSpy>
 #include <QTest>
 #include <QTemporaryDir>
 
@@ -90,9 +91,13 @@ void MainWindowSmokeTest::automaticallyLaunchesOnlyVisibleItem()
     configFile.close();
 
     MainWindow window(configPath);
+    QSignalSpy launchSpy(&window, &MainWindow::singleItemLaunchFinished);
     QVERIFY(!QFileInfo::exists(markerPath));
-    window.show();
+    window.start();
     QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(markerPath), 5000);
+    QCOMPARE(launchSpy.count(), 1);
+    QCOMPARE(launchSpy.takeFirst().at(0).toBool(), true);
+    QVERIFY(!window.isVisible());
 #endif
 }
 
