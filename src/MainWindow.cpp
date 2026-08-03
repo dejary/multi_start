@@ -4,6 +4,7 @@
 #include "Launcher.h"
 
 #include <QAbstractItemView>
+#include <QCoreApplication>
 #include <QFileInfo>
 #include <QIcon>
 #include <QListWidget>
@@ -110,7 +111,8 @@ void MainWindow::loadConfiguration()
     }
 
     m_config = result.config;
-    setWindowTitle(m_config.window.title);
+    setWindowTitle(QStringLiteral("%1 v%2")
+                       .arg(m_config.window.title, QCoreApplication::applicationVersion()));
     resize(m_config.window.width, m_config.window.height);
 
     populateItems();

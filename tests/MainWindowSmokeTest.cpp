@@ -17,9 +17,15 @@ class MainWindowSmokeTest final : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
     void rendersConfiguredItems();
     void automaticallyLaunchesOnlyVisibleItem();
 };
+
+void MainWindowSmokeTest::initTestCase()
+{
+    QCoreApplication::setApplicationVersion(QStringLiteral(MULTISTART_VERSION));
+}
 
 void MainWindowSmokeTest::rendersConfiguredItems()
 {
@@ -27,7 +33,8 @@ void MainWindowSmokeTest::rendersConfiguredItems()
     window.show();
     QTest::qWait(100);
 
-    QCOMPARE(window.windowTitle(), QStringLiteral("程序启动中心"));
+    QCOMPARE(window.windowTitle(),
+             QStringLiteral("程序启动中心 v%1").arg(QStringLiteral(MULTISTART_VERSION)));
     QVERIFY(!window.windowIcon().isNull());
     QVERIFY(window.findChild<QPushButton *>() == nullptr);
     const auto *listWidget = window.findChild<QListWidget *>();

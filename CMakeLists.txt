@@ -137,6 +137,7 @@ if(BUILD_TESTING)
     target_include_directories(MainWindowSmokeTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_compile_definitions(MainWindowSmokeTests PRIVATE
         MULTISTART_TEST_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/apps.json"
+        MULTISTART_VERSION="${PROJECT_VERSION}"
     )
     add_test(NAME MainWindowSmokeTests COMMAND MainWindowSmokeTests)
     set_tests_properties(MainWindowSmokeTests PROPERTIES
