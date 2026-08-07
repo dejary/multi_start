@@ -43,13 +43,18 @@ int main(int argc, char *argv[])
         QStringLiteral("指定 JSON 配置文件。"),
         QStringLiteral("file"));
     parser.addOption(configOption);
-    parser.process(application);
+    if (!parser.parse(application.arguments())) {
+        parser.showHelp(1);
+    }
 
     const QString configPath = parser.isSet(configOption)
                                    ? QFileInfo(parser.value(configOption)).absoluteFilePath()
                                    : defaultConfigPath();
 
     MainWindow window(configPath);
+    // MainWindow loads apps.json once and applies its higher-priority version before
+    // built-in command-line options such as --version are handled.
+    parser.process(application);
     QObject::connect(&window,
                      &MainWindow::singleItemLaunchFinished,
                      &application,

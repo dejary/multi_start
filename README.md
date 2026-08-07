@@ -52,6 +52,7 @@ MultiStart.exe --config D:/my-tools/apps.json
 
 ```json
 {
+  "version": "1.0.0",
   "window": {
     "title": "程序启动中心",
     "width": 800,
@@ -90,6 +91,8 @@ MultiStart.exe --config D:/my-tools/apps.json
 ```
 
 所有相对路径均以 `apps.json` 所在目录为基准。`type` 支持 `exe`、`bat` 和 `folder`。
+
+根级 `version` 必须使用 `x.y.z` 格式。配置后，它会覆盖 CMake 中的内置版本，并用于标题栏、`--version` 输出和自动升级检测；省略或格式无效时使用 `project(MultiStart VERSION ...)` 定义的版本。
 
 `updates.enabled` 为 `true` 且配置了 `serverBaseUrl` 时，程序会在显示启动中心前检测更新。更新服务使用 `appId`、`platform` 和 `channel` 定位版本；检测失败或没有更新不会阻塞程序。用户选择跳过的版本保存在 Qt `QSettings` 中。
 

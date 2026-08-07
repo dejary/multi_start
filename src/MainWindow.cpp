@@ -108,6 +108,9 @@ void MainWindow::loadConfiguration()
     }
 
     m_config = result.config;
+    if (!m_config.version.isEmpty()) {
+        QCoreApplication::setApplicationVersion(m_config.version);
+    }
     setWindowTitle(QStringLiteral("%1 v%2")
                        .arg(m_config.window.title, QCoreApplication::applicationVersion()));
     resize(m_config.window.width, m_config.window.height);

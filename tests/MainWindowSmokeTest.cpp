@@ -21,6 +21,7 @@ private slots:
     void initTestCase();
     void rendersConfiguredItems();
     void automaticallyLaunchesOnlyVisibleItem();
+    void usesConfiguredApplicationVersion();
 };
 
 void MainWindowSmokeTest::initTestCase()
@@ -99,6 +100,25 @@ void MainWindowSmokeTest::automaticallyLaunchesOnlyVisibleItem()
     QCOMPARE(launchSpy.takeFirst().at(0).toBool(), true);
     QVERIFY(!window.isVisible());
 #endif
+}
+
+void MainWindowSmokeTest::usesConfiguredApplicationVersion()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    QJsonObject root;
+    root.insert(QStringLiteral("version"), QStringLiteral("9.8.7"));
+    root.insert(QStringLiteral("items"), QJsonArray{});
+    const QString configPath = directory.filePath(QStringLiteral("apps.json"));
+    QFile configFile(configPath);
+    QVERIFY(configFile.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    configFile.write(QJsonDocument(root).toJson());
+    configFile.close();
+
+    MainWindow window(configPath);
+    QCOMPARE(QCoreApplication::applicationVersion(), QStringLiteral("9.8.7"));
+    QCOMPARE(window.windowTitle(), QStringLiteral("程序启动中心 v9.8.7"));
 }
 
 QTEST_MAIN(MainWindowSmokeTest)

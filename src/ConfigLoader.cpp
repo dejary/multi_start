@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QRegularExpression>
 
 #include <algorithm>
 #include <optional>
@@ -70,6 +71,18 @@ ConfigResult ConfigLoader::load(const QString &configPath)
     }
 
     const QJsonObject root = document.object();
+    const QJsonValue versionValue = root.value(QStringLiteral("version"));
+    if (!versionValue.isUndefined()) {
+        const QString version = versionValue.toString().trimmed();
+        static const QRegularExpression versionPattern(QStringLiteral("^\\d+\\.\\d+\\.\\d+$"));
+        if (versionPattern.match(version).hasMatch()) {
+            result.config.version = version;
+        } else {
+            result.warnings.append(
+                QStringLiteral("配置字段“version”格式无效，应为 x.y.z，已使用程序内置版本。"));
+        }
+    }
+
     const QJsonValue windowValue = root.value(QStringLiteral("window"));
     if (windowValue.isObject()) {
         const QJsonObject window = windowValue.toObject();

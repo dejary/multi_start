@@ -12,6 +12,7 @@ private slots:
     void loadsValidConfiguration();
     void skipsInvalidItems();
     void rejectsMalformedJson();
+    void ignoresInvalidConfiguredVersion();
 };
 
 namespace {
@@ -36,6 +37,7 @@ void ConfigLoaderTest::loadsValidConfiguration()
     QVERIFY(directory.isValid());
 
     const QString path = writeConfig(directory, R"({
+        "version": "2.3.4",
         "window": {"title": "测试中心", "width": 900, "height": 650},
         "updates": {
             "enabled": true,
@@ -53,6 +55,7 @@ void ConfigLoaderTest::loadsValidConfiguration()
 
     const ConfigResult result = ConfigLoader::load(path);
     QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.config.version, QStringLiteral("2.3.4"));
     QCOMPARE(result.config.window.title, QStringLiteral("测试中心"));
     QCOMPARE(result.config.window.width, 900);
     QVERIFY(result.config.updates.enabled);
@@ -94,6 +97,22 @@ void ConfigLoaderTest::rejectsMalformedJson()
     const ConfigResult result = ConfigLoader::load(path);
     QVERIFY(!result.ok());
     QVERIFY(!result.error.isEmpty());
+}
+
+void ConfigLoaderTest::ignoresInvalidConfiguredVersion()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString path = writeConfig(directory, R"({
+        "version": "release-latest",
+        "items": []
+    })");
+
+    const ConfigResult result = ConfigLoader::load(path);
+    QVERIFY(result.ok());
+    QVERIFY(result.config.version.isEmpty());
+    QCOMPARE(result.warnings.size(), 1);
 }
 
 QTEST_MAIN(ConfigLoaderTest)

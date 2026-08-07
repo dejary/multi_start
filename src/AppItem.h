@@ -38,6 +38,7 @@ struct UpdateSettings {
 };
 
 struct AppConfig {
+    QString version;
     WindowSettings window;
     UpdateSettings updates;
     QVector<AppItem> items;
