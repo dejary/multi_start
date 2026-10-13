@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "UpdateState.h"
 
 #include <check_auto_update/UpdateManager.h>
 
@@ -61,13 +62,8 @@ int main(int argc, char *argv[])
                      [&application](bool) { application.quit(); });
     const UpdateSettings &settings = window.updateSettings();
     if (settings.enabled) {
+        auto *updateState = new QSettings(&application);
         auto *updateManager = new CheckAutoUpdate::UpdateManager(&application);
-        QObject::connect(updateManager,
-                         &CheckAutoUpdate::UpdateManager::skippedVersionSelected,
-                         &application,
-                         [](const QString &version) {
-                             QSettings().setValue(QStringLiteral("updates/skippedVersion"), version);
-                         });
         QObject::connect(updateManager,
                          &CheckAutoUpdate::UpdateManager::finished,
                          &window,
@@ -83,8 +79,7 @@ int main(int argc, char *argv[])
         updateConfig.platform = settings.platform;
         updateConfig.channel = settings.channel;
         updateConfig.currentVersion = QCoreApplication::applicationVersion();
-        updateConfig.skippedVersion =
-            QSettings().value(QStringLiteral("updates/skippedVersion")).toString();
+        configureUpdateState(*updateManager, *updateState, updateConfig);
         updateConfig.dialogParent = &window;
         updateConfig.checkTimeoutMs = settings.checkTimeoutMs;
         updateConfig.downloadTimeoutMs = settings.downloadTimeoutMs;

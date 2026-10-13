@@ -30,6 +30,8 @@ get_filename_component(QT_RUNTIME_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 
 set(MULTISTART_SOURCES
     src/main.cpp
+    src/UpdateState.h
+    src/UpdateState.cpp
     src/AppItem.h
     src/ConfigLoader.h
     src/ConfigLoader.cpp
@@ -92,6 +94,18 @@ if(BUILD_TESTING)
     add_test(NAME ConfigLoaderTests COMMAND ConfigLoaderTests)
     set_tests_properties(ConfigLoaderTests PROPERTIES
         ENVIRONMENT_MODIFICATION "${QT_TEST_PATH_MODIFICATIONS}"
+    )
+
+    add_executable(UpdateStateTests
+        tests/UpdateStateTest.cpp
+        src/UpdateState.h
+        src/UpdateState.cpp
+    )
+    target_link_libraries(UpdateStateTests PRIVATE ${QT_PACKAGE}::Test CheckAutoUpdate::CheckAutoUpdate)
+    target_include_directories(UpdateStateTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_test(NAME UpdateStateTests COMMAND UpdateStateTests)
+    set_tests_properties(UpdateStateTests PROPERTIES
+        ENVIRONMENT_MODIFICATION "${QT_TEST_PATH_MODIFICATIONS};PATH=path_list_prepend:$<TARGET_FILE_DIR:CheckAutoUpdate>"
     )
 
     add_executable(MainWindowSmokeTests

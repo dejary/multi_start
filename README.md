@@ -94,7 +94,9 @@ MultiStart.exe --config D:/my-tools/apps.json
 
 根级 `version` 必须使用 `x.y.z` 格式。配置后，它会覆盖 CMake 中的内置版本，并用于标题栏、`--version` 输出和自动升级检测；省略或格式无效时使用 `project(MultiStart VERSION ...)` 定义的版本。
 
-`updates.enabled` 为 `true` 且配置了 `serverBaseUrl` 时，程序会在显示启动中心前检测更新。更新服务使用 `appId`、`platform` 和 `channel` 定位版本；检测失败或没有更新不会阻塞程序。用户选择跳过的版本保存在 Qt `QSettings` 中。
+`updates.enabled` 为 `true` 且配置了 `serverBaseUrl` 时，程序会在显示启动中心前检测更新。更新服务使用 `appId`、`platform` 和 `channel` 定位版本；检测失败或没有更新不会阻塞程序。用户选择跳过的版本及安装包 SHA-256 保存在 Qt `QSettings` 中，因此同版本重新发布的不同包仍可提示更新。
+
+安装器成功启动后，程序会保存该安装包的 SHA-256，并在下次检查时传给更新库，避免同一版本、同一安装包反复提示升级。首次没有记录时仍会提示一次同版本升级。当前更新库的通知表示安装器已启动，不能确认安装最终成功；若启动后取消或安装失败，同版本的该包也会被记录。
 
 首次克隆后需要初始化自动升级子模块：
 
