@@ -25,34 +25,6 @@ set_property(TARGET CheckAutoUpdate PROPERTY INTERFACE_COMPILE_FEATURES cxx_std_
 set_property(TARGET CheckAutoUpdate PROPERTY CXX_STANDARD 17)
 set_property(TARGET CheckAutoUpdate PROPERTY CXX_STANDARD_REQUIRED ON)
 
-# Qt 5's QStringList has multiple assignment overloads, so the dependency's bare
-# initializer-list assignment is ambiguous with MSVC. Compile a generated compatibility
-# copy until the upstream source uses an explicit QStringList initializer.
-set(CHECK_AUTO_UPDATE_MANAGER_SOURCE
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/check_auto_update/src/UpdateManager.cpp")
-file(READ "${CHECK_AUTO_UPDATE_MANAGER_SOURCE}" CHECK_AUTO_UPDATE_MANAGER_CONTENT)
-string(REPLACE
-    "arguments = {QStringLiteral(\"/SILENT\")"
-    "arguments = QStringList{QStringLiteral(\"/SILENT\")"
-    CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT
-    "${CHECK_AUTO_UPDATE_MANAGER_CONTENT}"
-)
-if(CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT STREQUAL CHECK_AUTO_UPDATE_MANAGER_CONTENT)
-    message(FATAL_ERROR "CheckAutoUpdate Qt 5 compatibility patch no longer matches upstream")
-endif()
-set(CHECK_AUTO_UPDATE_COMPAT_DIR "${CMAKE_CURRENT_BINARY_DIR}/check_auto_update_compat")
-file(MAKE_DIRECTORY "${CHECK_AUTO_UPDATE_COMPAT_DIR}")
-set(CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE
-    "${CHECK_AUTO_UPDATE_COMPAT_DIR}/UpdateManager.cpp")
-file(WRITE "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE}"
-    "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_CONTENT}")
-set_source_files_properties(
-    "${CHECK_AUTO_UPDATE_MANAGER_SOURCE}"
-    TARGET_DIRECTORY CheckAutoUpdate
-    PROPERTIES HEADER_FILE_ONLY TRUE
-)
-target_sources(CheckAutoUpdate PRIVATE "${CHECK_AUTO_UPDATE_MANAGER_COMPAT_SOURCE}")
-
 get_target_property(QT_QMAKE_EXECUTABLE ${QT_PACKAGE}::qmake IMPORTED_LOCATION)
 get_filename_component(QT_RUNTIME_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 
