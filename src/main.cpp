@@ -22,13 +22,12 @@ QString defaultConfigPath()
 
 int main(int argc, char *argv[])
 {
-    QApplication application(argc, argv);
-
-
-#if (QT_VERSION <= QT_VERSION_CHECK(6, 0, 0))
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps); // 高分辨率图标
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
+
+    QApplication application(argc, argv);
 
     QCoreApplication::setApplicationName(QStringLiteral("MultiStart"));
     QCoreApplication::setApplicationVersion(QStringLiteral(MULTISTART_VERSION));

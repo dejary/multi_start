@@ -39,6 +39,8 @@ set(MULTISTART_SOURCES
     src/Launcher.cpp
     src/MainWindow.h
     src/MainWindow.cpp
+    src/FlowLayout.cpp
+    src/LaunchTile.cpp
     resources/resources.qrc
 )
 
@@ -117,6 +119,8 @@ if(BUILD_TESTING)
         src/Launcher.cpp
         src/MainWindow.h
         src/MainWindow.cpp
+        src/FlowLayout.cpp
+        src/LaunchTile.cpp
         resources/resources.qrc
     )
     target_link_libraries(MainWindowSmokeTests PRIVATE ${QT_PACKAGE}::Widgets ${QT_PACKAGE}::Test)

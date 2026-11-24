@@ -5,8 +5,12 @@
 #include <QMainWindow>
 
 class QIcon;
-class QListWidget;
-class QListWidgetItem;
+class FlowLayout;
+class LaunchTile;
+class QResizeEvent;
+class QScreen;
+class QScrollArea;
+class QShowEvent;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -21,18 +25,26 @@ public slots:
 signals:
     void singleItemLaunchFinished(bool success);
 
-private slots:
-    void activateItem(QListWidgetItem *listItem);
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
 private:
+    void adaptToScreen(QScreen *screen);
     void buildUi();
     void loadConfiguration();
     void populateItems();
-    [[nodiscard]] bool launchItem(QListWidgetItem *listItem);
+    void updateItemMetrics();
+    [[nodiscard]] bool launchItem(int index);
+    void moveFocus(int index, int key);
     [[nodiscard]] QIcon iconForItem(const AppItem &item) const;
 
     QString m_configPath;
     AppConfig m_config;
     QVector<AppItem> m_visibleItems;
-    QListWidget *m_listWidget = nullptr;
+    QScrollArea *m_scroll = nullptr;
+    FlowLayout *m_flow = nullptr;
+    QVector<LaunchTile *> m_tiles;
+    bool m_hasAdaptedToScreen = false;
+    bool m_screenTrackingConnected = false;
 };

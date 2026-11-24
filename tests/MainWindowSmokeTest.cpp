@@ -3,16 +3,23 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
+#include <QFontMetrics>
+#include <QGuiApplication>
 #include <QIcon>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QListWidget>
+#include "LaunchTile.h"
+#include <QLabel>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QPixmap>
 #include <QPushButton>
+#include <QScreen>
 #include <QSignalSpy>
 #include <QTest>
 #include <QTemporaryDir>
+#include <QWindow>
 
 class MainWindowSmokeTest final : public QObject {
     Q_OBJECT
@@ -20,7 +27,9 @@ class MainWindowSmokeTest final : public QObject {
 private slots:
     void initTestCase();
     void rendersConfiguredItems();
+    void fitsTwelveCharacterName();
     void automaticallyLaunchesOnlyVisibleItem();
+    void fitsAvailableScreen();
     void usesConfiguredApplicationVersion();
 };
 
@@ -39,17 +48,16 @@ void MainWindowSmokeTest::rendersConfiguredItems()
              QStringLiteral("程序启动中心 v%1").arg(QStringLiteral(MULTISTART_VERSION)));
     QVERIFY(!window.windowIcon().isNull());
     QVERIFY(window.findChild<QPushButton *>() == nullptr);
-    const auto *listWidget = window.findChild<QListWidget *>();
-    QVERIFY(listWidget != nullptr);
-    QCOMPARE(listWidget->count(), 3);
-    QCOMPARE(listWidget->item(0)->text(), QStringLiteral("记事本"));
-    QCOMPARE(listWidget->item(1)->text(), QStringLiteral("演示脚本"));
-    QCOMPARE(listWidget->item(2)->text(), QStringLiteral("数据目录"));
-    QCOMPARE(listWidget->item(0)->icon().pixmap(64, 64).toImage(),
+    const auto tiles = window.findChildren<LaunchTile *>();
+    QCOMPARE(tiles.size(), 3);
+    QCOMPARE(tiles[0]->accessibleName(), QStringLiteral("记事本"));
+    QCOMPARE(tiles[1]->accessibleName(), QStringLiteral("演示脚本"));
+    QCOMPARE(tiles[2]->accessibleName(), QStringLiteral("数据目录"));
+    QCOMPARE(tiles[0]->icon().pixmap(64, 64).toImage(),
              QIcon(QStringLiteral(":/assets/default-exe.png")).pixmap(64, 64).toImage());
-    QCOMPARE(listWidget->item(1)->icon().pixmap(64, 64).toImage(),
+    QCOMPARE(tiles[1]->icon().pixmap(64, 64).toImage(),
              QIcon(QStringLiteral(":/assets/default-bat.png")).pixmap(64, 64).toImage());
-    QCOMPARE(listWidget->item(2)->icon().pixmap(64, 64).toImage(),
+    QCOMPARE(tiles[2]->icon().pixmap(64, 64).toImage(),
              QIcon(QStringLiteral(":/assets/default-folder.png")).pixmap(64, 64).toImage());
 
     const QString screenshotPath = qEnvironmentVariable("MULTISTART_SMOKE_SCREENSHOT");
@@ -58,6 +66,43 @@ void MainWindowSmokeTest::rendersConfiguredItems()
         QVERIFY(!screenshot.isNull());
         QVERIFY2(screenshot.save(screenshotPath, "PNG"), qPrintable(screenshotPath));
         QVERIFY(QFileInfo::exists(screenshotPath));
+    }
+}
+
+void MainWindowSmokeTest::fitsTwelveCharacterName()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString name = QStringLiteral("电能质量监测设备管理工具");
+    QJsonArray items;
+    for (int i = 0; i < 48; ++i) {
+        items.append(QJsonObject{{"name", i == 1 ? name : QStringLiteral("工具")},
+                                 {"type", "folder"}, {"path", "."}});
+    }
+    QFile config(directory.filePath(QStringLiteral("apps.json")));
+    QVERIFY(config.open(QIODevice::WriteOnly));
+    config.write(QJsonDocument(QJsonObject{{"items", items}}).toJson());
+    config.close();
+    MainWindow window(config.fileName());
+    window.show();
+    const auto tiles = window.findChildren<LaunchTile *>();
+    QCOMPARE(tiles.size(), items.size());
+    auto *scroll = window.findChild<QScrollArea *>();
+    QVERIFY(scroll);
+    for (const QSize size : {QSize(800, 600), QSize(480, 360)}) {
+        window.resize(size);
+        QCoreApplication::processEvents();
+        QCOMPARE(tiles[0]->y(), tiles[1]->y());
+        QCOMPARE(tiles[0]->width(), tiles[1]->width());
+        QCOMPARE(tiles[1]->height(), tiles[1]->heightForWidth(tiles[1]->width()));
+        QVERIFY(tiles[0]->height() < tiles[1]->height());
+        QVERIFY(scroll->verticalScrollBar()->maximum() > 0);
+        QCOMPARE(scroll->horizontalScrollBar()->maximum(), 0);
+        QTest::keyClick(tiles[1], Qt::Key_Down);
+        auto *below = window.focusWidget();
+        QVERIFY(below);
+        QCOMPARE(below->x(), tiles[1]->x());
+        QVERIFY(below->y() >= tiles[1]->geometry().bottom() + 1);
     }
 }
 
@@ -119,6 +164,42 @@ void MainWindowSmokeTest::usesConfiguredApplicationVersion()
     MainWindow window(configPath);
     QCOMPARE(QCoreApplication::applicationVersion(), QStringLiteral("9.8.7"));
     QCOMPARE(window.windowTitle(), QStringLiteral("程序启动中心 v9.8.7"));
+}
+
+void MainWindowSmokeTest::fitsAvailableScreen()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    QJsonObject windowSettings;
+    windowSettings.insert(QStringLiteral("width"), 3840);
+    windowSettings.insert(QStringLiteral("height"), 2160);
+    QJsonObject root;
+    root.insert(QStringLiteral("window"), windowSettings);
+    root.insert(QStringLiteral("items"), QJsonArray{});
+
+    const QString configPath = directory.filePath(QStringLiteral("apps.json"));
+    QFile configFile(configPath);
+    QVERIFY(configFile.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    configFile.write(QJsonDocument(root).toJson());
+    configFile.close();
+
+    MainWindow window(configPath);
+    window.start();
+    QTest::qWait(50);
+
+    const QScreen *screen = window.windowHandle() != nullptr
+                                ? window.windowHandle()->screen()
+                                : QGuiApplication::primaryScreen();
+    QVERIFY(screen != nullptr);
+    const QRect available = screen->availableGeometry();
+    QVERIFY(window.frameGeometry().width() <= available.width());
+    QVERIFY(window.frameGeometry().height() <= available.height());
+    QVERIFY(available.contains(window.frameGeometry().center()));
+
+    auto *empty = window.findChild<QLabel *>();
+    QVERIFY(empty);
+    QCOMPARE(empty->text(), QStringLiteral("配置中没有可显示的项目"));
 }
 
 QTEST_MAIN(MainWindowSmokeTest)
